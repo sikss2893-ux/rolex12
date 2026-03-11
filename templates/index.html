@@ -1,19 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>{{ title }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
-
+    <meta charset="UTF-8">
+    <title>Mini Task Manager</title>
+    <style>
+        body { 
+            font-family: Arial; 
+            margin: 40px auto;
+            max-width: 600px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-top: 0;
+        }
+        
+        .completed { 
+            text-decoration: line-through; 
+            color: gray; 
+        }
+        
+        .priority-high {
+            border-left: 4px solid #ff4444;
+            background-color: #fff5f5;
+        }
+        
+        .priority-medium {
+            border-left: 4px solid #ffbb33;
+        }
+        
+        .priority-low {
+            border-left: 4px solid #00C851;
+        }
+        
+        .overdue {
+            background-color: #ffebee !important;
+            border-left: 4px solid #c62828 !important;
+        }
+        
+        .task-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin: 10px 0;
+            background: #f9f9f9;
+            border-radius: 5px;
+            list-style: none;
+            transition: all 0.3s;
+        }
+        
+        .task-item:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .task-content {
+            flex: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .priority-badge {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            color: white;
+            margin-left: 10px;
+        }
+        
+        .priority-badge.high { background: #ff4444; }
+        .priority-badge.medium { background: #ffbb33; }
+        .priority-badge.low { background: #00C851; }
+        
+        .deadline {
+            font-size: 12px;
+            color: #666;
+            margin-left: 10px;
+        }
+        
+        .deadline.overdue {
+            color: #c62828;
+            font-weight: bold;
+        }
+        
+        button { 
+            margin-left: 5px;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        
+        .delete-btn {
+            background: #ff4444;
+            color: white;
+        }
+        
+        .add-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+        
+        input, select {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .add-btn {
+            background: #00C851;
+            color: white;
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+        }
+        
+        .sort-buttons {
+            text-align: right;
+            margin: 10px 0;
+        }
+        
+        .sort-buttons button {
+            background: #e0e0e0;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 5px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+    </style>
+</head>
 <body>
-    <div class="App">
-        <header class="App-header">
-            <img src="{{ url_for('static', filename='Octocat.png') }}" class="App-logo" alt="logo" />
-            <p>
-                GitHub Codespaces <span class="heart">♥️</span> Flask
-            </p>
-            <p class="small">
-                Edit <code>templates/index.html</code> and refresh to see your changes!
-            </p>
-        </header>
+    <div class="container">
+        <h1>📋 Mini Task Manager</h1>
+        
+        <div class="stats" id="stats">
+            <div class="stat-item">
+                <div>Всего</div>
+                <div class="stat-number" id="total-count">0</div>
+            </div>
+            <div class="stat-item">
+                <div>Выполнено</div>
+                <div class="stat-number" id="completed-count">0</div>
+            </div>
+            <div class="stat-item">
+                <div>Просрочено</div>
+                <div class="stat-number" id="overdue-count">0</div>
+            </div>
+        </div>
+        
+        <div class="add-section">
+            <input type="text" id="new-task" placeholder="Что нужно сделать?">
+            
+            <select id="task-priority">
+                <option value="low">🟢 Низкий приоритет</option>
+                <option value="medium" selected>🟡 Средний приоритет</option>
+                <option value="high">🔴 Высокий приоритет</option>
+            </select>
+            
+            <input type="date" id="task-deadline">
+            
+            <button class="add-btn" onclick="addTask()">➕ Добавить задачу</button>
+        </div>
+        
+        <div class="sort-buttons">
+            <button onclick="sortTasks('priority')">📊 По приоритету</button>
+            <button onclick="sortTasks('deadline')">📅 По сроку</button>
+            <button onclick="sortTasks('title')">📝 По названию</button>
+        </div>
+        
+        <ul id="task-list"></ul>
     </div>
-</body>
 
+<script>
+let currentTasks = [];
+
+async function fetchTasks() {
+    const res = await fetch('/tasks');
+    currentTasks = await res.json();
+    renderTasks(currentTasks);
+    updateStats();
+}
+
+function renderTasks(tasks) {
+    const list = document.getElementById('task-list');
+    list.innerHTML = '';
+    
+    tasks.forEach(task => {
+        const li = document.createElement('li');
+        li.className = `task-item priority-${task.priority || 'medium'}`;
+        
+        if (task.deadline && !task.completed) {
+            if (new Date(task.deadline) < new Date()) {
+                li.classList.add('overdue');
+            }
+        }
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'task-content';
+        contentDiv.onclick = () => toggleTask(task.id);
+        
+        const statusIcon = task.completed ? '✅' : '⬜';
+        contentDiv.innerHTML = `${statusIcon} ${task.title}`;
+        
+        const prioritySpan = document.createElement('span');
+        prioritySpan.className = `priority-badge ${task.priority || 'medium'}`;
+        prioritySpan.textContent = task.priority || 'medium';
+        contentDiv.appendChild(prioritySpan);
+        
+        if (task.deadline) {
+            const deadlineSpan = document.createElement('span');
+            deadlineSpan.className = `deadline ${new Date(task.deadline) < new Date() && !task.completed ? 'overdue' : ''}`;
+            deadlineSpan.textContent = `📅 ${task.deadline}`;
+            contentDiv.appendChild(deadlineSpan);
+        }
+        
+        li.appendChild(contentDiv);
+        
+        const del = document.createElement('button');
+        del.className = 'delete-btn';
+        del.textContent = '❌';
+        del.onclick = async (e) => { 
+            e.stopPropagation(); 
+            if(confirm('Удалить задачу?')) {
+                await deleteTask(task.id); 
+                fetchTasks(); 
+            }
+        };
+        li.appendChild(del);
+        
+        list.appendChild(li);
+    });
+}
+
+function updateStats() {
+    const total = currentTasks.length;
+    const completed = currentTasks.filter(t => t.completed).length;
+    const overdue = currentTasks.filter(t => {
+        if (!t.deadline || t.completed) return false;
+        return new Date(t.deadline) < new Date();
+    }).length;
+    
+    document.getElementById('total-count').textContent = total;
+    document.getElementById('completed-count').textContent = completed;
+    document.getElementById('overdue-count').textContent = overdue;
+}
+
+function sortTasks(type) {
+    let sorted = [...currentTasks];
+    
+    if (type === 'priority') {
+        const priorityOrder = { high: 0, medium: 1, low: 2 };
+        sorted.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+    } else if (type === 'deadline') {
+        sorted.sort((a, b) => {
+            if (!a.deadline) return 1;
+            if (!b.deadline) return -1;
+            return new Date(a.deadline) - new Date(b.deadline);
+        });
+    } else if (type === 'title') {
+        sorted.sort((a, b) => a.title.localeCompare(b.title));
+    }
+    
+    renderTasks(sorted);
+}
+
+async function addTask() {
+    const input = document.getElementById('new-task');
+    const priority = document.getElementById('task-priority').value;
+    const deadline = document.getElementById('task-deadline').value;
+    
+    if(!input.value.trim()) {
+        alert('Введите название задачи!');
+        return;
+    }
+    
+    await fetch('/tasks', { 
+        method: 'POST', 
+        headers:{'Content-Type':'application/json'}, 
+        body: JSON.stringify({
+            title: input.value,
+            priority: priority,
+            deadline: deadline || null
+        }) 
+    });
+    
+    input.value = '';
+    document.getElementById('task-deadline').value = '';
+    fetchTasks();
+}
+
+async function toggleTask(id) {
+    await fetch(`/tasks/${id}`, { method: 'PUT' });
+    fetchTasks();
+}
+
+async function deleteTask(id) {
+    await fetch(`/tasks/${id}`, { method: 'DELETE' });
+}
+
+fetchTasks();
+
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('task-deadline').min = today;
+});
+</script>
+</body>
 </html>
